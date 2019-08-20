@@ -1,0 +1,9 @@
+add_executable(print_name_and_age_client_cpp print_name_and_age_client.cpp)
+
+include_directories(print_name_and_age_client_cpp ../dstc)
+include_directories(print_name_and_age_client_cpp ../reliable_multicast)
+
+target_link_libraries(print_name_and_age_client_cpp dstc)
+target_link_libraries(print_name_and_age_client_cpp rmc)
+
+set_property(TARGET print_name_and_age_client_cpp PROPERTY CXX_STANDARD 17)
