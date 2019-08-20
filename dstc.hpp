@@ -3,6 +3,7 @@ extern "C" {
     extern int dstc_dyndata_length(dstc_dynamic_data_t*);
 }
 
+#include <iostream> // steven you should remove this
 #include <type_traits>
 
 namespace dstc {
@@ -10,25 +11,30 @@ namespace dstc {
     namespace utils {
 
         template<typename HEAD>
-        constexpr uint32_t getArgSize()
+        uint32_t getArgSize(HEAD head)
         {
-            return sizeof(HEAD);
+            if constexpr (std::is_same<dstc_dynamic_data_t, HEAD>::value) {
+                return sizeof(uint32_t) + head.length;
+            }
+            else {
+                return sizeof(HEAD);
+            }
         }
 
         template<typename HEAD, typename ... TAIL>
-        uint32_t _getArgsSize() {
+        uint32_t _getArgsSize(HEAD head, TAIL ... args) {
             if constexpr (sizeof...(TAIL) > 0) {
-                return getArgSize<HEAD>() + _getArgsSize<TAIL...>();
+                return getArgSize<HEAD>(head) + _getArgsSize<TAIL...>(args...);
             }
             else {
-                return getArgSize<HEAD>();
+                return getArgSize<HEAD>(head);
             }
         }
 
         template<typename ... TYPES>
-        constexpr uint32_t getArgsSize() {
+        uint32_t getArgsSize(TYPES ... args) {
             if constexpr (sizeof...(TYPES) > 0) {
-                return _getArgsSize<TYPES...>();
+                return _getArgsSize<TYPES...>(args...);
             }
             else {
                 return 0;
@@ -37,14 +43,22 @@ namespace dstc {
 
         template<typename HEAD, typename ... TAIL>
         void copyArgs(uint8_t* ptr, HEAD head, TAIL ... args) {
-            if constexpr (std::is_array<HEAD>::value) {
+
+            if constexpr (std::is_same<dstc_dynamic_data_t, HEAD>::value) {
+                memcpy(ptr, (void*) &head.length, sizeof(uint16_t));
+                ptr += sizeof(uint16_t);
+                memcpy(ptr, head.data, head.length);
+                ptr += head.length;
+            }
+            else if constexpr (std::is_array<HEAD>::value) {
                 memcpy(ptr, (void*)head, sizeof(HEAD));
+                ptr += sizeof(HEAD);
             }
             else {
                 memcpy(ptr, (void*)&head, sizeof(HEAD));
+                ptr += sizeof(HEAD);
             }
             if constexpr (sizeof...(TAIL) > 0) {
-                ptr += sizeof(HEAD);
                 return copyArgs<TAIL...>(ptr, args...);
             }
         }
@@ -61,12 +75,12 @@ namespace dstc {
             return execute(args...);
         }
 
-        static uint32_t getArgSize() {
-            return utils::getArgsSize<Types...>();
+        static uint32_t getArgSize(Types ... args) {
+            return utils::getArgsSize<Types...>(args...);
         }
 
         static int execute(Types... args) {
-            auto arg_size = getArgSize();
+            auto arg_size = getArgSize(args...);
             uint8_t arg_buf[arg_size];
             uint8_t* ptr = arg_buf;
 
