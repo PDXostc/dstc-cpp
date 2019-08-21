@@ -13,8 +13,11 @@ namespace Remote {
     //const char test_dynamic_function_name[] = "test_dynamic_function";
     //dstc::RemoteFunction<test_dynamic_function_name, dstc_dynamic_data_t, int[4]> testDynamicFunctionName;
 
-    const char double_value_name[] = "double_value";
-    dstc::RemoteFunction<double_value_name, int, dstc::CallbackFunction< int > > doubleValue;
+    namespace names {
+        const char double_value_name[] = "double_value";
+    }
+
+    dstc::RemoteFunction<names::double_value_name, int, dstc::CallbackFunction< int > > doubleValue;
 }
 
 int main() {
@@ -42,6 +45,7 @@ int main() {
     Remote::doubleValue.blockUntilServerAvailable();
     std::cout << "Server function available." << std::endl;
 
+    /*
     for (auto i = 0; i < 64; ++i) {
         Remote::doubleValue(i,
             dstc::CallbackFunction<int>(
@@ -49,15 +53,14 @@ int main() {
             )
         );
     }
-
-    /*
-    Remote::doubleValue(
-
-    )
     */
 
-    // I'll soon put the dstc_process_events in a separate object, but it lives in main for now...
-    while (true) {
-        dstc_process_events(-1);
-    }
+
+        Remote::doubleValue(12345, dstc::CallbackFunction<int>(
+            [](int result) { std::cout << "Got value: " << result << std::endl;; }
+        ));
+
+        while(true) {
+            dstc_process_events(-1);
+        }
 }
