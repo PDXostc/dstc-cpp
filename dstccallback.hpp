@@ -12,6 +12,7 @@ namespace dstc {
 
     class CallbackFunctionBase {
     public:
+        CallbackFunctionBase();
         //virtual ~CallbackFunctionBase() = 0;
     };
 

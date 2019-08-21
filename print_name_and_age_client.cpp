@@ -55,5 +55,7 @@ int main() {
     */
 
     // I'll soon put the dstc_process_events in a separate object, but it lives in main for now...
-    dstc_process_events(-1);
+    while (true) {
+        dstc_process_events(-1);
+    }
 }
