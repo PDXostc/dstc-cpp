@@ -1,12 +1,18 @@
+#pragma once
+
 extern "C" {
     #include "dstc.h"
-    extern int dstc_dyndata_length(dstc_dynamic_data_t*);
+    //extern int dstc_dyndata_length(dstc_dynamic_data_t*);
 }
 
-#include <iostream> // steven you should remove this
 #include <type_traits>
+#include <iostream> // should be removed after library is debugged and stable
+
+#include "dstccallback.hpp"
 
 namespace dstc {
+
+    extern CallbackHandler _callback_handler;;
 
     namespace utils {
 
@@ -53,6 +59,11 @@ namespace dstc {
             else if constexpr (std::is_array<HEAD>::value) {
                 memcpy(ptr, (void*)head, sizeof(HEAD));
                 ptr += sizeof(HEAD);
+            }
+            else if constexpr (std::is_base_of<CallbackFunctionBase, HEAD>::value) {
+                auto callback_id = _callback_handler.registerCallback(head);
+                memcpy(ptr, (void*)&callback_id, sizeof(callback_id));
+                ptr += sizeof(callback_id);
             }
             else {
                 memcpy(ptr, (void*)&head, sizeof(HEAD));

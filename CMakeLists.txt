@@ -1,4 +1,4 @@
-add_executable(print_name_and_age_client_cpp print_name_and_age_client.cpp)
+add_executable(print_name_and_age_client_cpp print_name_and_age_client.cpp dstccallback.cpp)
 
 include_directories(print_name_and_age_client_cpp ../dstc)
 include_directories(print_name_and_age_client_cpp ../reliable_multicast)
