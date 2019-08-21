@@ -42,11 +42,13 @@ int main() {
     Remote::doubleValue.blockUntilServerAvailable();
     std::cout << "Server function available." << std::endl;
 
-    Remote::doubleValue(1234,
-        dstc::CallbackFunction<int>(
-            [](int result) { std::cout << "Got value: " << result; }
-        )
-    );
+    for (auto i = 0; i < 64; ++i) {
+        Remote::doubleValue(i,
+            dstc::CallbackFunction<int>(
+                [](int result) { std::cout << "Got value: " << result; }
+            )
+        );
+    }
 
     /*
     Remote::doubleValue(

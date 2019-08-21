@@ -10,9 +10,14 @@ extern "C" {
 
 namespace dstc {
 
+    void dstcCallbackHandlerRoutine(dstc_callback_t callback_ref,
+                                         rmc_node_id_t node_id,
+                                         uint8_t *name,
+                                         uint8_t* payload,
+                                         uint16_t payload_len);
+
     class CallbackFunctionBase {
     public:
-        CallbackFunctionBase();
         //virtual ~CallbackFunctionBase() = 0;
     };
 
@@ -39,6 +44,7 @@ namespace dstc {
             std::lock_guard<std::mutex> lock(_callback_mtx);
             auto callback_id = _getUniqueCallbackID();
             _callbacks[callback_id] = callback_shared;
+            dstc_activate_callback(nullptr, callback_id, dstcCallbackHandlerRoutine);
             return callback_id;
         }
 
