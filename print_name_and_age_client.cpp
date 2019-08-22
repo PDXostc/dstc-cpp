@@ -9,6 +9,7 @@ namespace Remote {
         const char double_value_name[] = "double_value";
     }
 
+    // Defines argument list for remote function as well as argument list for callback routine
     dstc::RemoteFunction<names::double_value_name, int, dstc::CallbackFunction< int > > doubleValue;
 }
 
@@ -20,6 +21,8 @@ int main() {
     std::atomic<bool> flag(false);
 
     Remote::doubleValue(12345, dstc::CallbackFunction<int>(
+        // This lambda expression gets invoked when server responds
+        // You can use normal std::function<> instead of lambda if you prefer
         [&flag](int result) {
             std::cout << "Got value: " << result << std::endl;
             flag = true;
