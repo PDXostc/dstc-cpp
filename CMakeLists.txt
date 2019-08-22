@@ -1,9 +1,20 @@
-add_executable(print_name_and_age_client_cpp print_name_and_age_client.cpp dstccallback.cpp)
 
-include_directories(print_name_and_age_client_cpp ../dstc)
-include_directories(print_name_and_age_client_cpp ../reliable_multicast)
 
-target_link_libraries(print_name_and_age_client_cpp dstc)
-target_link_libraries(print_name_and_age_client_cpp rmc)
+add_library(dstcpp SHARED dstccallback.cpp)
 
-set_property(TARGET print_name_and_age_client_cpp PROPERTY CXX_STANDARD 17)
+include_directories(dstcpp ../dstc)
+include_directories(dstcpp ../reliable_multicast)
+
+target_link_libraries(dstcpp dstc)
+target_link_libraries(dstcpp rmc)
+
+set_property(TARGET dstcpp PROPERTY CXX_STANDARD 17)
+
+file(GLOB test_SRC
+    "./test/*.cpp"
+)
+
+add_executable(run_tests ${test_SRC})
+target_link_libraries(run_tests dstcpp gtest pthread)
+
+set_property(TARGET run_tests PROPERTY CXX_STANDARD 17)

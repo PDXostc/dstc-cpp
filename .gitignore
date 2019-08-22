@@ -37,3 +37,4 @@ CMakeFiles
 CMakeCache.txt
 cmake_install.cmake
 print_name_and_age_client_cpp
+run_tests
