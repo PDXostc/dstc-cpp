@@ -14,8 +14,11 @@ extern "C" {
 
 #include <type_traits>
 #include <iostream> // should be removed after library is debugged and stable
+#include <chrono>
+#include <thread>
 
 #include "dstccallback.hpp"
+#include "dstceventloop.hpp"
 
 namespace dstc {
 
@@ -109,9 +112,31 @@ namespace dstc {
             return dstc_queue_func(nullptr, (char*)DSTC_Name, arg_buf, arg_size);
         }
 
-        void blockUntilServerAvailable() {
-            while (!dstc_remote_function_available_by_name((char*)DSTC_Name)) {
-                 dstc_process_events(-1);
+        bool serverAvailable() {
+            return dstc_remote_function_available_by_name((char*)DSTC_Name);
+        }
+
+        bool blockUntilServerAvailable(const EventLoopRunner& runner, int timeout_ms = -1) {
+
+            (void) runner; // cast to avoid not used warning--it does not get used in this function
+                           // but the callee must prove they have created the object so that
+                           // this function can assume dstc_process_events is being called in the background
+
+            if (timeout_ms < 0) {
+                while(!serverAvailable()) {} // block forever if server never comes up
+                return true;
+            }
+            else {
+                auto timeout = std::chrono::system_clock::now() + std::chrono::milliseconds(timeout_ms);
+                while (true) {
+                    if (serverAvailable()) {
+                        return true;
+                    }
+                    if (std::chrono::system_clock::now() >= timeout) {
+                        return false;
+                    }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                }
             }
         }
     };
