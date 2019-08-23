@@ -9,10 +9,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// Generate deserializer for multicast packets sent by the client
-// The deserializer decodes the incoming data and calls the
-// print_name_and_age() function in this file.
-//
 DSTC_SERVER(print_name_and_age, char, [32], int,)
 
 int ret_val = 63;

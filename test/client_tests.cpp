@@ -90,3 +90,86 @@ TEST(ServerAvailable, delayed_availability) {
 
     EXPECT_EQ(0, server_launch_fut.get().get());
 }
+
+// DSTC does not appear to support this, but leaving this as a placeholder for a test gap
+// in the future, as there is code in DSTC++ that can't be tested if this is not enabled
+TEST(RemoteFunction, DISABLED_no_args) {
+    FAIL() << "This is not supported by DSTC yet";
+}
+
+TEST(RemoteFunction, basic_type_one_arg) {
+    FAIL() << "Implement me";
+}
+
+TEST(RemoteFunction, basic_type_many_args) {
+    FAIL() << "Implement me";
+}
+
+TEST(RemoteFunction, array_type_one_arg) {
+    FAIL() << "Implement me";
+}
+
+TEST(RemoteFunction, array_type_many_arg) {
+    FAIL() << "Implement me";
+}
+
+TEST(RemoteFunction, dynamic_type) {
+    FAIL() << "Implement me";
+}
+
+TEST(RemoteFunction, multiple_dynamic_type) {
+    FAIL() << "Implement me";
+}
+
+TEST(RemoteFunction, struct_type) {
+    FAIL() << "Implement me";
+}
+
+TEST(RemoteFunction, multiple_struct_type) {
+    FAIL() << "Implement me";
+}
+
+TEST(RemoteFunction, mixed_types) {
+    FAIL() << "Implement me";
+}
+
+// Not yet supported by DSTC
+TEST(RemoteFunction, DISABLED_callback_no_arg) {
+    FAIL() << "This is not supported by DSTC yet";
+}
+
+TEST(RemoteFunction, callback_basic_type) {
+    FAIL() << "Implement me";
+}
+
+TEST(RemoteFunction, callback_multiple_basic_type) {
+    FAIL() << "Implement me";
+}
+
+TEST(RemoteFunction, callback_struct_type) {
+    FAIL() << "Implement me";
+}
+
+TEST(RemoteFunction, callback_multiple_struct_type) {
+    FAIL() << "Implement me";
+}
+
+TEST(RemoteFunction, callback_dynamic_type) {
+    FAIL() << "Implement me";
+}
+
+TEST(RemoteFunction, callback_multiple_dynamic_type) {
+    FAIL() << "Implement me";
+}
+
+TEST(RemoteFunction, callback_array_type) {
+    FAIL() << "Implement me";
+}
+
+TEST(RemoteFunction, callback_multiple_array_type) {
+    FAIL() << "Implement me";
+}
+
+TEST(RemoteFunction, callback_mixed_types) {
+    FAIL() << "Implement me";
+}

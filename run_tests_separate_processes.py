@@ -27,4 +27,4 @@ for test in test_list:
 if (num_failures > 0):
     print ("TESTS FAILED!! : Num failures: {} / {}".format(num_failures, len(test_list)))
 else:
-    print ("All tests PASS.  Number tests ran: ".format(len(test_list)))
+    print ("All tests PASS.  Number tests ran: {}".format(len(test_list)))

@@ -34,4 +34,3 @@ set_property(TARGET run_tests PROPERTY CXX_STANDARD 17)
 add_executable(print_name_and_age_server test/print_name_and_age_server.c)
 target_link_libraries(print_name_and_age_server dstc)
 target_link_libraries(print_name_and_age_server rmc)
-
