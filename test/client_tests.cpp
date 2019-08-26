@@ -13,8 +13,14 @@
 namespace remote {
     namespace names {
         const char print_name_and_age[] = "print_name_and_age";
+        const char basic_type_one_arg[] = "basic_type_one_arg";
+        const char basic_type_many_args[] = "basic_type_many_args";
+        const char array_type_one_arg[] = "array_type_one_arg";
     }
     dstc::RemoteFunction<names::print_name_and_age, char[32], int> printNameAndAge;
+    dstc::RemoteFunction<names::basic_type_one_arg, int> basicTypeOneArg;
+    dstc::RemoteFunction<names::basic_type_many_args, int, char, uint16_t, int> basicTypeManyArgs;
+    dstc::RemoteFunction<names::array_type_one_arg, int[17]> arrayTypeOneArg;
 }
 
 std::future<int> spawnProcess(std::string&& server_binary_name) {
@@ -98,15 +104,94 @@ TEST(RemoteFunction, DISABLED_no_args) {
 }
 
 TEST(RemoteFunction, basic_type_one_arg) {
-    FAIL() << "Implement me";
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./basic_type_one_arg_server -1927");
+    EXPECT_TRUE(remote::basicTypeOneArg.blockUntilServerAvailable(runner));
+    remote::basicTypeOneArg(-1927);
+    EXPECT_EQ(0, fut.get());
+}
+
+TEST(RemoteFunction, basic_type_neg_test) {
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./basic_type_one_arg_server -1927");
+    EXPECT_TRUE(remote::basicTypeOneArg.blockUntilServerAvailable(runner));
+    remote::basicTypeOneArg(1927);
+    EXPECT_EQ(1, fut.get());
 }
 
 TEST(RemoteFunction, basic_type_many_args) {
-    FAIL() << "Implement me";
+
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./basic_type_many_args_server -512 k 14 51982");
+    EXPECT_TRUE(remote::basicTypeManyArgs.blockUntilServerAvailable(runner));
+    remote::basicTypeManyArgs(-512, 'k', 14, 51982);
+    EXPECT_EQ(0, fut.get());
+}
+
+TEST(RemoteFunction, basic_type_many_args_neg_test_1) {
+
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./basic_type_many_args_server -512 k 14 51982");
+    EXPECT_TRUE(remote::basicTypeManyArgs.blockUntilServerAvailable(runner));
+    remote::basicTypeManyArgs(-511, 'k', 14, 51982);
+    EXPECT_EQ(1, fut.get());
+}
+
+TEST(RemoteFunction, basic_type_many_args_neg_test_2) {
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./basic_type_many_args_server -512 k 14 51982");
+    EXPECT_TRUE(remote::basicTypeManyArgs.blockUntilServerAvailable(runner));
+    remote::basicTypeManyArgs(-512, 'i', 14, 51982);
+    EXPECT_EQ(1, fut.get());
+}
+
+TEST(RemoteFunction, basic_type_many_args_neg_test_3) {
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./basic_type_many_args_server -512 k 14 51982");
+    EXPECT_TRUE(remote::basicTypeManyArgs.blockUntilServerAvailable(runner));
+    remote::basicTypeManyArgs(-512, 'k', 15, 51982);
+    EXPECT_EQ(1, fut.get());
+}
+
+TEST(RemoteFunction, basic_type_many_args_neg_test_4) {
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./basic_type_many_args_server -512 k 14 51982");
+    EXPECT_TRUE(remote::basicTypeManyArgs.blockUntilServerAvailable(runner));
+    remote::basicTypeManyArgs(-512, 'k', 14, 51983);
+    EXPECT_EQ(1, fut.get());
 }
 
 TEST(RemoteFunction, array_type_one_arg) {
-    FAIL() << "Implement me";
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./array_type_one_arg_server 51");
+    EXPECT_TRUE(remote::arrayTypeOneArg.blockUntilServerAvailable(runner));
+
+    int array[17];
+    for (int i = 0; i < 17; ++i) {
+        array[i] = i + 51;
+    }
+
+    remote::arrayTypeOneArg(array);
+
+    EXPECT_EQ(0, fut.get());
+}
+
+TEST(RemoteFunction, array_type_one_arg_neg) {
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./array_type_one_arg_server 51");
+    EXPECT_TRUE(remote::arrayTypeOneArg.blockUntilServerAvailable(runner));
+
+    int array[17];
+    for (int i = 0; i < 17; ++i) {
+        array[i] = i + 51;
+    }
+
+    // spoil one element
+    array[15] = 99999;
+
+    remote::arrayTypeOneArg(array);
+
+    EXPECT_EQ(1, fut.get());
 }
 
 TEST(RemoteFunction, array_type_many_arg) {
@@ -128,6 +213,12 @@ TEST(RemoteFunction, struct_type) {
 TEST(RemoteFunction, multiple_struct_type) {
     FAIL() << "Implement me";
 }
+
+
+TEST(RemoteFunction, array_of_struct) {
+    FAIL() << "Implement me";
+}
+
 
 TEST(RemoteFunction, mixed_types) {
     FAIL() << "Implement me";
@@ -171,5 +262,9 @@ TEST(RemoteFunction, callback_multiple_array_type) {
 }
 
 TEST(RemoteFunction, callback_mixed_types) {
+    FAIL() << "Implement me";
+}
+
+TEST(RemoteFunction, multiple_functions) {
     FAIL() << "Implement me";
 }

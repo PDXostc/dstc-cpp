@@ -38,3 +38,6 @@ CMakeCache.txt
 cmake_install.cmake
 print_name_and_age_server
 run_tests
+array_type_one_arg_server
+basic_type_many_args_server
+basic_type_one_arg_server

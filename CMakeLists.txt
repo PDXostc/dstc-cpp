@@ -31,6 +31,14 @@ set_property(TARGET run_tests PROPERTY CXX_STANDARD 17)
 
 # DSTC Test Servers
 
-add_executable(print_name_and_age_server test/print_name_and_age_server.c)
-target_link_libraries(print_name_and_age_server dstc)
-target_link_libraries(print_name_and_age_server rmc)
+set (SERVER_NAMES print_name_and_age_server
+                  basic_type_one_arg_server
+                  basic_type_many_args_server
+                  array_type_one_arg_server
+                  )
+
+foreach (SERVER IN LISTS SERVER_NAMES)
+    add_executable(${SERVER} test/${SERVER}.c)
+    target_link_libraries(${SERVER} dstc)
+    target_link_libraries(${SERVER} rmc)
+endforeach()
