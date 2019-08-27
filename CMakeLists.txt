@@ -35,6 +35,9 @@ set (SERVER_NAMES print_name_and_age_server
                   basic_type_one_arg_server
                   basic_type_many_args_server
                   array_type_one_arg_server
+                  array_type_many_args_server
+                  dynamic_type_server
+                  multiple_dynamic_type_server
                   )
 
 foreach (SERVER IN LISTS SERVER_NAMES)

@@ -30,7 +30,7 @@ namespace dstc {
         uint32_t getArgSize(HEAD head)
         {
             if constexpr (std::is_same<dstc_dynamic_data_t, HEAD>::value) {
-                return sizeof(uint32_t) + head.length;
+                return sizeof(uint16_t) + head.length;
             }
             else {
                 return sizeof(HEAD);

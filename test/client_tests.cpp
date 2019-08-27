@@ -10,17 +10,27 @@
 #include <future>
 #include <cstdlib>
 
+extern "C" {
+    #include "test/teststructs.h"
+}
+
 namespace remote {
     namespace names {
         const char print_name_and_age[] = "print_name_and_age";
         const char basic_type_one_arg[] = "basic_type_one_arg";
         const char basic_type_many_args[] = "basic_type_many_args";
         const char array_type_one_arg[] = "array_type_one_arg";
+        const char array_type_many_args[] = "array_type_many_args";
+        const char dynamic_type[] = "dynamic_type";
+        const char multiple_dynamic_type[] = "multiple_dynamic_type";
     }
     dstc::RemoteFunction<names::print_name_and_age, char[32], int> printNameAndAge;
     dstc::RemoteFunction<names::basic_type_one_arg, int> basicTypeOneArg;
     dstc::RemoteFunction<names::basic_type_many_args, int, char, uint16_t, int> basicTypeManyArgs;
     dstc::RemoteFunction<names::array_type_one_arg, int[17]> arrayTypeOneArg;
+    dstc::RemoteFunction<names::array_type_many_args, char[17], int[5]> arrayTypeManyArgs;
+    dstc::RemoteFunction<names::dynamic_type, dstc_dynamic_data_t> dynamicType;
+    dstc::RemoteFunction<names::multiple_dynamic_type, dstc_dynamic_data_t, dstc_dynamic_data_t> multipleDynamicType;
 }
 
 std::future<int> spawnProcess(std::string&& server_binary_name) {
@@ -194,17 +204,220 @@ TEST(RemoteFunction, array_type_one_arg_neg) {
     EXPECT_EQ(1, fut.get());
 }
 
-TEST(RemoteFunction, array_type_many_arg) {
-    FAIL() << "Implement me";
+TEST(RemoteFunction, array_type_many_args) {
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./array_type_many_args_server bananas 817");
+    EXPECT_TRUE(remote::arrayTypeManyArgs.blockUntilServerAvailable(runner));
+
+    int array[5];
+    for (auto i = 0; i < 5; ++i) {
+        array[i] = 817 + i;
+    }
+
+    char ch_array[] = "bananas";
+
+    remote::arrayTypeManyArgs(ch_array, array);
+
+    EXPECT_EQ(0, fut.get());;
+}
+
+TEST(RemoteFunction, array_type_many_args_neg1) {
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./array_type_many_args_server bananas 817");
+    EXPECT_TRUE(remote::arrayTypeManyArgs.blockUntilServerAvailable(runner));
+
+    int array[5];
+    for (auto i = 0; i < 5; ++i) {
+        array[i] = 817 + i;
+    }
+
+    // too many letters
+    char ch_array[] = "bananasas";
+
+    remote::arrayTypeManyArgs(ch_array, array);
+
+    EXPECT_EQ(1, fut.get());;
+}
+
+TEST(RemoteFunction, array_type_many_args_neg2) {
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./array_type_many_args_server bananas 817");
+    EXPECT_TRUE(remote::arrayTypeManyArgs.blockUntilServerAvailable(runner));
+
+    int array[5];
+    for (auto i = 0; i < 5; ++i) {
+        array[i] = 817 + i;
+    }
+
+    // bad data
+    array[2] = 135352;
+
+    char ch_array[] = "bananas";
+
+    remote::arrayTypeManyArgs(ch_array, array);
+
+    EXPECT_EQ(1, fut.get());;
 }
 
 TEST(RemoteFunction, dynamic_type) {
-    FAIL() << "Implement me";
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./dynamic_type_server a 1341 e 325 g 128976");
+    EXPECT_TRUE(remote::dynamicType.blockUntilServerAvailable(runner));
+
+    SimpleStruct data[3];
+    data[0].a = 'a';
+    data[0].b = 1341;
+    data[1].a = 'e';
+    data[1].b = 325;
+    data[2].a = 'g';
+    data[2].b = 128976;
+
+    dstc_dynamic_data_t dyn_data;
+    dyn_data.length = sizeof(SimpleStruct) * 3;
+    dyn_data.data = (void*) data;
+
+    remote::dynamicType(dyn_data);
+
+    EXPECT_EQ(0, fut.get());
+}
+
+TEST(RemoteFunction, dynamic_type_neg) {
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./dynamic_type_server a 1341 e 325 g 128976");
+    EXPECT_TRUE(remote::dynamicType.blockUntilServerAvailable(runner));
+
+    SimpleStruct data[3];
+    data[0].a = 'a';
+    data[0].b = 1341;
+    data[1].a = 'e';
+    data[1].b = 326; // incorrect data
+    data[2].a = 'g';
+    data[2].b = 128976;
+
+    dstc_dynamic_data_t dyn_data;
+    dyn_data.length = sizeof(SimpleStruct) * 3;
+    dyn_data.data = (void*) data;
+
+    remote::dynamicType(dyn_data);
+
+    EXPECT_EQ(1, fut.get());
 }
 
 TEST(RemoteFunction, multiple_dynamic_type) {
-    FAIL() << "Implement me";
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./multiple_dynamic_type_server");
+    EXPECT_TRUE(remote::multipleDynamicType.blockUntilServerAvailable(runner));
+
+    std::cout << "Function manifested itself..." << std::endl;
+
+    SimpleStruct expected_arg1[3];
+    expected_arg1[0].a = 'a';
+    expected_arg1[1].a = 'b';
+    expected_arg1[2].a = 'c';
+
+    expected_arg1[0].b = 123;
+    expected_arg1[1].b = 456;
+    expected_arg1[2].b = 789;
+
+    DifferentSimpleStruct expected_arg2[2];
+    expected_arg2[0].a = 234;
+    expected_arg2[1].a = 567;
+
+    expected_arg2[0].b = 'x';
+    expected_arg2[1].b = 'y';
+
+    expected_arg2[0].c = 1234;
+    expected_arg2[1].c = 9876;
+
+    dstc_dynamic_data_t dyn_data1, dyn_data2;
+
+    dyn_data1.length = sizeof(SimpleStruct) * 3;
+    dyn_data2.length = sizeof(DifferentSimpleStruct) * 2;
+
+    dyn_data1.data = (void*)expected_arg1;
+    dyn_data2.data = (void*)expected_arg2;
+
+    remote::multipleDynamicType(dyn_data1, dyn_data2);
+
+    EXPECT_EQ(0, fut.get());
 }
+
+
+TEST(RemoteFunction, multiple_dynamic_type_neg1) {
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./multiple_dynamic_type_server");
+    EXPECT_TRUE(remote::multipleDynamicType.blockUntilServerAvailable(runner));
+
+    SimpleStruct expected_arg1[3];
+    expected_arg1[0].a = 'a';
+    expected_arg1[1].a = 'b';
+    expected_arg1[2].a = 'c';
+
+    expected_arg1[0].b = 1234; // wrong data
+    expected_arg1[1].b = 456;
+    expected_arg1[2].b = 789;
+
+    DifferentSimpleStruct expected_arg2[2];
+    expected_arg2[0].a = 234;
+    expected_arg2[1].a = 567;
+
+    expected_arg2[0].b = 'x';
+    expected_arg2[1].b = 'y';
+
+    expected_arg2[0].c = 1234;
+    expected_arg2[1].c = 9876;
+
+    dstc_dynamic_data_t dyn_data1, dyn_data2;
+
+    dyn_data1.length = sizeof(SimpleStruct) * 3;
+    dyn_data2.length = sizeof(DifferentSimpleStruct) * 2;
+
+    dyn_data1.data = (void*)expected_arg1;
+    dyn_data2.data = (void*)expected_arg2;
+
+    remote::multipleDynamicType(dyn_data1, dyn_data2);
+
+    EXPECT_EQ(1, fut.get());
+}
+
+
+TEST(RemoteFunction, multiple_dynamic_type_neg2) {
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./multiple_dynamic_type_server");
+    EXPECT_TRUE(remote::multipleDynamicType.blockUntilServerAvailable(runner));
+
+    SimpleStruct expected_arg1[3];
+    expected_arg1[0].a = 'a';
+    expected_arg1[1].a = 'b';
+    expected_arg1[2].a = 'c';
+
+    expected_arg1[0].b = 123;
+    expected_arg1[1].b = 456;
+    expected_arg1[2].b = 789;
+
+    DifferentSimpleStruct expected_arg2[2];
+    expected_arg2[0].a = 234;
+    expected_arg2[1].a = 567;
+
+    expected_arg2[0].b = 'z'; // wrong data
+    expected_arg2[1].b = 'y';
+
+    expected_arg2[0].c = 1234;
+    expected_arg2[1].c = 9876;
+
+    dstc_dynamic_data_t dyn_data1, dyn_data2;
+
+    dyn_data1.length = sizeof(SimpleStruct) * 3;
+    dyn_data2.length = sizeof(DifferentSimpleStruct) * 2;
+
+    dyn_data1.data = (void*)expected_arg1;
+    dyn_data2.data = (void*)expected_arg2;
+
+    remote::multipleDynamicType(dyn_data1, dyn_data2);
+
+    EXPECT_EQ(1, fut.get());
+}
+
 
 TEST(RemoteFunction, struct_type) {
     FAIL() << "Implement me";
@@ -218,7 +431,6 @@ TEST(RemoteFunction, multiple_struct_type) {
 TEST(RemoteFunction, array_of_struct) {
     FAIL() << "Implement me";
 }
-
 
 TEST(RemoteFunction, mixed_types) {
     FAIL() << "Implement me";
