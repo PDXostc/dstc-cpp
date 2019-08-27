@@ -15,6 +15,7 @@ DSTC_SERVER(double_value, int,, DSTC_DECL_CALLBACK_ARG)
 DSTC_SERVER(add_and_multiply, int,, int,, DSTC_DECL_CALLBACK_ARG)
 DSTC_SERVER(do_lots_of_things, struct ForManipulation,, DSTC_DECL_CALLBACK_ARG)
 DSTC_SERVER(separate_types, struct StructA,, struct StructB,, DSTC_DECL_CALLBACK_ARG)
+DSTC_SERVER(rude_contradiction, DSTC_DECL_DYNAMIC_ARG, DSTC_DECL_CALLBACK_ARG)
 
 void double_value(int value, dstc_callback_t callback_ref)
 {
@@ -65,6 +66,31 @@ void separate_types(struct StructA a, struct StructB b, dstc_callback_t callback
     s16.f = b.f;
 
     dstc_callback_ref(s16, s8);
+
+    dstc_process_events(-1);
+    exit(0);
+}
+
+void rude_contradiction(dstc_dynamic_data_t input, dstc_callback_t callback_ref)
+{
+    DSTC_SERVER_CALLBACK(callback_ref, DSTC_DECL_DYNAMIC_ARG)
+
+    char start_expression[] = "No, ";
+    char stop_expression[] = " is the stupidest thing I've ever heard.";
+
+    char* final_expression = (char*) malloc(
+        input.length + strlen(start_expression) + strlen(stop_expression)
+    );
+
+    strcpy(final_expression, start_expression);
+    strcat(final_expression, (char*)input.data);
+    strcat(final_expression, stop_expression);
+
+    dstc_dynamic_data_t output;
+    output.length = strlen(final_expression) + 1;
+    output.data = (void*) final_expression;
+
+    dstc_callback_ref(output);
 
     dstc_process_events(-1);
     exit(0);

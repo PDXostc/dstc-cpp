@@ -31,6 +31,7 @@ namespace remote {
         const char add_and_multiply[] = "add_and_multiply";
         const char do_lots_of_things[] = "do_lots_of_things";
         const char separate_types[] = "separate_types";
+        const char rude_contradiction[] = "rude_contradiction";
     }
     dstc::RemoteFunction<names::print_name_and_age, char[32], int> printNameAndAge;
     dstc::RemoteFunction<names::basic_type_one_arg, int> basicTypeOneArg;
@@ -47,6 +48,7 @@ namespace remote {
     dstc::RemoteFunction<names::add_and_multiply, int, int, dstc::CallbackFunction<int, int>> addAndMultiply;
     dstc::RemoteFunction<names::do_lots_of_things, ForManipulation, dstc::CallbackFunction<ForManipulation>> doLotsOfThings;
     dstc::RemoteFunction<names::separate_types, StructA, StructB, dstc::CallbackFunction<Struct16, Struct8>> separateTypes;
+    dstc::RemoteFunction<names::rude_contradiction, dstc_dynamic_data_t, dstc::CallbackFunction<dstc_dynamic_data_t>> rudeContradiction;
 }
 
 std::future<int> spawnProcess(std::string&& server_binary_name) {
@@ -799,7 +801,35 @@ TEST(RemoteFunction, callback_multiple_struct_type) {
 }
 
 TEST(RemoteFunction, callback_dynamic_type) {
-    FAIL() << "Implement me";
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./callback_server");
+    EXPECT_TRUE(remote::rudeContradiction.blockUntilServerAvailable(runner));
+
+    std::atomic<bool> done = false;
+
+    char expression[] = "torqouise is a fun color";
+    dstc_dynamic_data_t data;
+    data.length = strlen(expression) + 1;
+    data.data = (void*) expression;
+
+    std::string final_expression = std::string("No, ") + expression + " is the stupidest thing I've ever heard.";
+
+    remote::rudeContradiction(
+        data,
+        dstc::CallbackFunction<dstc_dynamic_data_t>(
+            [&done, &final_expression] (dstc_dynamic_data_t reply) {
+                EXPECT_EQ(final_expression.size() + 1, reply.length);
+                EXPECT_STREQ(final_expression.c_str(), (char*) reply.data);
+                done = true;
+            }
+        )
+    );
+
+    while (!done) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    EXPECT_EQ(0, fut.get());
 }
 
 TEST(RemoteFunction, callback_multiple_dynamic_type) {
