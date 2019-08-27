@@ -40,6 +40,9 @@ set (SERVER_NAMES print_name_and_age_server
                   multiple_dynamic_type_server
                   struct_type_server
                   multiple_struct_type_server
+                  array_of_struct_server
+                  mixed_types_server
+                  callback_server
                   )
 
 foreach (SERVER IN LISTS SERVER_NAMES)

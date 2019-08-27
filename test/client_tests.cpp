@@ -25,6 +25,10 @@ namespace remote {
         const char multiple_dynamic_type[] = "multiple_dynamic_type";
         const char struct_type[] = "struct_type";
         const char multiple_struct_type[] = "multiple_struct_type";
+        const char array_of_struct[] = "array_of_struct";
+        const char mixed_types[] = "mixed_types";
+        const char double_value[] = "double_value";
+        const char add_and_multiply[] = "add_and_multiply";
     }
     dstc::RemoteFunction<names::print_name_and_age, char[32], int> printNameAndAge;
     dstc::RemoteFunction<names::basic_type_one_arg, int> basicTypeOneArg;
@@ -35,6 +39,10 @@ namespace remote {
     dstc::RemoteFunction<names::multiple_dynamic_type, dstc_dynamic_data_t, dstc_dynamic_data_t> multipleDynamicType;
     dstc::RemoteFunction<names::struct_type, SimpleStruct> structType;
     dstc::RemoteFunction<names::multiple_struct_type, SimpleStruct, DifferentSimpleStruct> multipleStructType;
+    dstc::RemoteFunction<names::array_of_struct, SimpleStruct[5]> arrayOfStruct;
+    dstc::RemoteFunction<names::mixed_types, uint8_t, uint16_t[7], SimpleStruct, dstc_dynamic_data_t> mixedTypes;
+    dstc::RemoteFunction<names::double_value, int, dstc::CallbackFunction<int>> doubleValue;
+    dstc::RemoteFunction<names::add_and_multiply, int, int, dstc::CallbackFunction<int, int>> addAndMultiply;
 }
 
 std::future<int> spawnProcess(std::string&& server_binary_name) {
@@ -510,11 +518,158 @@ TEST(RemoteFunction, multiple_struct_type_neg2) {
 
 
 TEST(RemoteFunction, array_of_struct) {
-    FAIL() << "Implement me";
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./array_of_struct_server a 1 b 2 c 3 d 4 e 5");
+    EXPECT_TRUE(remote::arrayOfStruct.blockUntilServerAvailable(runner));
+
+    SimpleStruct array[5];
+    for (auto i = 0; i < 5; ++i) {
+        array[i].a = 'a' + i;
+        array[i].b = i + 1;
+    }
+
+    remote::arrayOfStruct(array);
+
+    EXPECT_EQ(0, fut.get());
+}
+
+TEST(RemoteFunction, array_of_struct_neg) {
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./array_of_struct_server a 1 b 2 c 3 d 4 e 5");
+    EXPECT_TRUE(remote::arrayOfStruct.blockUntilServerAvailable(runner));
+
+    SimpleStruct array[5];
+    for (auto i = 0; i < 5; ++i) {
+        array[i].a = 'a' + i;
+        array[i].b = i + 1;
+    }
+
+    array[3].b = 'x'; // wrong!!!!!
+
+    remote::arrayOfStruct(array);
+
+    EXPECT_EQ(1, fut.get());
 }
 
 TEST(RemoteFunction, mixed_types) {
-    FAIL() << "Implement me";
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./mixed_types_server");
+    EXPECT_TRUE(remote::mixedTypes.blockUntilServerAvailable(runner));
+
+    uint16_t array[7];
+    for (uint16_t i = 0; i < 7; ++i) {
+        array[i] = 1000 + i;
+    }
+
+    SimpleStruct strct;
+    strct.a = 'c';
+    strct.b = 541;
+
+    char send_string[] = "this is a string";
+    dstc_dynamic_data_t dyn_data;
+    dyn_data.data = (void*)send_string;
+    dyn_data.length = strlen(send_string) + 1;
+
+    remote::mixedTypes(42, array, strct, dyn_data);
+
+    EXPECT_EQ(0, fut.get());
+}
+
+TEST(RemoteFunction, mixed_types_neg1) {
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./mixed_types_server");
+    EXPECT_TRUE(remote::mixedTypes.blockUntilServerAvailable(runner));
+
+    uint16_t array[7];
+    for (uint16_t i = 0; i < 7; ++i) {
+        array[i] = 1000 + i;
+    }
+
+    SimpleStruct strct;
+    strct.a = 'c';
+    strct.b = 541;
+
+    char send_string[] = "this is a string";
+    dstc_dynamic_data_t dyn_data;
+    dyn_data.data = (void*)send_string;
+    dyn_data.length = strlen(send_string) + 1;
+
+    // incorrect int
+    remote::mixedTypes(23, array, strct, dyn_data);
+
+    EXPECT_EQ(1, fut.get());
+}
+
+TEST(RemoteFunction, mixed_types_neg2) {
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./mixed_types_server");
+    EXPECT_TRUE(remote::mixedTypes.blockUntilServerAvailable(runner));
+
+    uint16_t array[7];
+    for (uint16_t i = 0; i < 7; ++i) {
+        array[i] = 1100 + i; // wrong!!!!
+    }
+
+    SimpleStruct strct;
+    strct.a = 'c';
+    strct.b = 541;
+
+    char send_string[] = "this is a string";
+    dstc_dynamic_data_t dyn_data;
+    dyn_data.data = (void*)send_string;
+    dyn_data.length = strlen(send_string) + 1;
+
+    remote::mixedTypes(42, array, strct, dyn_data);
+
+    EXPECT_EQ(1, fut.get());
+}
+
+TEST(RemoteFunction, mixed_types_neg3) {
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./mixed_types_server");
+    EXPECT_TRUE(remote::mixedTypes.blockUntilServerAvailable(runner));
+
+    uint16_t array[7];
+    for (uint16_t i = 0; i < 7; ++i) {
+        array[i] = 1000 + i;
+    }
+
+    SimpleStruct strct;
+    strct.a = 'a';  // WRONG!!!!!!
+    strct.b = 541;
+
+    char send_string[] = "this is a string";
+    dstc_dynamic_data_t dyn_data;
+    dyn_data.data = (void*)send_string;
+    dyn_data.length = strlen(send_string) + 1;
+
+    remote::mixedTypes(42, array, strct, dyn_data);
+
+    EXPECT_EQ(1, fut.get());
+}
+
+TEST(RemoteFunction, mixed_types_neg4) {
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./mixed_types_server");
+    EXPECT_TRUE(remote::mixedTypes.blockUntilServerAvailable(runner));
+
+    uint16_t array[7];
+    for (uint16_t i = 0; i < 7; ++i) {
+        array[i] = 1000 + i;
+    }
+
+    SimpleStruct strct;
+    strct.a = 'c';
+    strct.b = 541;
+
+    char send_string[] = "this is NOT a string"; // oh so wrong!!!
+    dstc_dynamic_data_t dyn_data;
+    dyn_data.data = (void*)send_string;
+    dyn_data.length = strlen(send_string) + 1;
+
+    remote::mixedTypes(42, array, strct, dyn_data);
+
+    EXPECT_EQ(1, fut.get());
 }
 
 // Not yet supported by DSTC
@@ -523,11 +678,49 @@ TEST(RemoteFunction, DISABLED_callback_no_arg) {
 }
 
 TEST(RemoteFunction, callback_basic_type) {
-    FAIL() << "Implement me";
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./callback_server");
+    EXPECT_TRUE(remote::doubleValue.blockUntilServerAvailable(runner));
+
+    std::atomic<int> value = 0;
+
+    remote::doubleValue(1234, dstc::CallbackFunction<int>(
+        [&value] (int arg){
+            value = arg;
+        })
+    );
+
+    while (value == 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    EXPECT_EQ(2468, value);
+
+    EXPECT_EQ(0, fut.get());
 }
 
 TEST(RemoteFunction, callback_multiple_basic_type) {
-    FAIL() << "Implement me";
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./callback_server");
+    EXPECT_TRUE(remote::addAndMultiply.blockUntilServerAvailable(runner));
+
+    std::atomic<bool> done(false);
+
+    remote::addAndMultiply(4, 6,
+        dstc::CallbackFunction<int, int>(
+            [&done] (int sum, int product) {
+                EXPECT_EQ(4 + 6, sum);
+                EXPECT_EQ(4 * 6, product);
+                done = true;
+            }
+        )
+    );
+
+    while (!done) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    EXPECT_EQ(0, fut.get());
 }
 
 TEST(RemoteFunction, callback_struct_type) {
