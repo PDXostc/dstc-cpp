@@ -29,6 +29,8 @@ namespace remote {
         const char mixed_types[] = "mixed_types";
         const char double_value[] = "double_value";
         const char add_and_multiply[] = "add_and_multiply";
+        const char do_lots_of_things[] = "do_lots_of_things";
+        const char separate_types[] = "separate_types";
     }
     dstc::RemoteFunction<names::print_name_and_age, char[32], int> printNameAndAge;
     dstc::RemoteFunction<names::basic_type_one_arg, int> basicTypeOneArg;
@@ -43,6 +45,8 @@ namespace remote {
     dstc::RemoteFunction<names::mixed_types, uint8_t, uint16_t[7], SimpleStruct, dstc_dynamic_data_t> mixedTypes;
     dstc::RemoteFunction<names::double_value, int, dstc::CallbackFunction<int>> doubleValue;
     dstc::RemoteFunction<names::add_and_multiply, int, int, dstc::CallbackFunction<int, int>> addAndMultiply;
+    dstc::RemoteFunction<names::do_lots_of_things, ForManipulation, dstc::CallbackFunction<ForManipulation>> doLotsOfThings;
+    dstc::RemoteFunction<names::separate_types, StructA, StructB, dstc::CallbackFunction<Struct16, Struct8>> separateTypes;
 }
 
 std::future<int> spawnProcess(std::string&& server_binary_name) {
@@ -724,11 +728,74 @@ TEST(RemoteFunction, callback_multiple_basic_type) {
 }
 
 TEST(RemoteFunction, callback_struct_type) {
-    FAIL() << "Implement me";
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./callback_server");
+    EXPECT_TRUE(remote::doLotsOfThings.blockUntilServerAvailable(runner));
+
+    std::atomic<bool> done(false);
+
+    ForManipulation data;
+    data.ch = 'd';
+    data.d = 142.0;
+    data.i = 1512;
+    data.u16 = 23;
+
+    remote::doLotsOfThings(
+        data, dstc::CallbackFunction<ForManipulation>(
+            [&done](ForManipulation ret) {
+                EXPECT_EQ('d' + 1, ret.ch);
+                EXPECT_EQ(142.0 / 2.0, ret.d);
+                EXPECT_EQ(1512 * 2, ret.i);
+                EXPECT_EQ(23 + 64, ret.u16);
+                done = true;
+            }
+        )
+    );
+
+    while (!done) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    EXPECT_EQ(0, fut.get());
 }
 
 TEST(RemoteFunction, callback_multiple_struct_type) {
-    FAIL() << "Implement me";
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./callback_server");
+    EXPECT_TRUE(remote::separateTypes.blockUntilServerAvailable(runner));
+
+    std::atomic<bool> done(false);
+
+    StructA args_a;
+    StructB args_b;
+
+    args_a.a = 1;
+    args_a.b = 2;
+    args_a.c = 3;
+    args_b.d = 4;
+    args_b.e = 5;
+    args_b.f = 6;
+
+    remote::separateTypes(
+        args_a, args_b,
+        dstc::CallbackFunction<Struct16, Struct8> (
+            [&done, &args_a, &args_b] (Struct16 struct16, Struct8 struct8) {
+                EXPECT_EQ(args_a.a, struct16.a);
+                EXPECT_EQ(args_a.b, struct8.b);
+                EXPECT_EQ(args_a.c, struct8.c);
+                EXPECT_EQ(args_b.d, struct16.d);
+                EXPECT_EQ(args_b.e, struct8.e);
+                EXPECT_EQ(args_b.f, struct16.f);
+                done = true;
+            }
+        )
+    );
+
+    while (!done) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    EXPECT_EQ(0, fut.get());
 }
 
 TEST(RemoteFunction, callback_dynamic_type) {
