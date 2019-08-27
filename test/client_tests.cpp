@@ -23,6 +23,8 @@ namespace remote {
         const char array_type_many_args[] = "array_type_many_args";
         const char dynamic_type[] = "dynamic_type";
         const char multiple_dynamic_type[] = "multiple_dynamic_type";
+        const char struct_type[] = "struct_type";
+        const char multiple_struct_type[] = "multiple_struct_type";
     }
     dstc::RemoteFunction<names::print_name_and_age, char[32], int> printNameAndAge;
     dstc::RemoteFunction<names::basic_type_one_arg, int> basicTypeOneArg;
@@ -31,6 +33,8 @@ namespace remote {
     dstc::RemoteFunction<names::array_type_many_args, char[17], int[5]> arrayTypeManyArgs;
     dstc::RemoteFunction<names::dynamic_type, dstc_dynamic_data_t> dynamicType;
     dstc::RemoteFunction<names::multiple_dynamic_type, dstc_dynamic_data_t, dstc_dynamic_data_t> multipleDynamicType;
+    dstc::RemoteFunction<names::struct_type, SimpleStruct> structType;
+    dstc::RemoteFunction<names::multiple_struct_type, SimpleStruct, DifferentSimpleStruct> multipleStructType;
 }
 
 std::future<int> spawnProcess(std::string&& server_binary_name) {
@@ -420,11 +424,88 @@ TEST(RemoteFunction, multiple_dynamic_type_neg2) {
 
 
 TEST(RemoteFunction, struct_type) {
-    FAIL() << "Implement me";
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./struct_type_server H 7228");
+    EXPECT_TRUE(remote::structType.blockUntilServerAvailable(runner));
+
+    SimpleStruct data;
+    data.a = 'H';
+    data.b = 7228;
+
+    remote::structType(data);
+
+    EXPECT_EQ(0, fut.get());
+}
+
+TEST(RemoteFunction, struct_type_neg) {
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./struct_type_server H 7228");
+    EXPECT_TRUE(remote::structType.blockUntilServerAvailable(runner));
+
+    SimpleStruct data;
+    data.a = 'h'; // wrong
+    data.b = 7228;
+
+    remote::structType(data);
+
+    EXPECT_EQ(1, fut.get());
 }
 
 TEST(RemoteFunction, multiple_struct_type) {
-    FAIL() << "Implement me";
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./multiple_struct_type_server m 192 1245 R 102");
+    EXPECT_TRUE(remote::multipleStructType.blockUntilServerAvailable(runner));
+
+    SimpleStruct arg1;
+    arg1.a = 'm';
+    arg1.b = 192;
+
+    DifferentSimpleStruct arg2;
+    arg2.a = 1245;
+    arg2.b = 'R';
+    arg2.c = 102;
+
+    remote::multipleStructType(arg1, arg2);
+
+    EXPECT_EQ(0, fut.get());
+}
+
+TEST(RemoteFunction, multiple_struct_type_neg1) {
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./multiple_struct_type_server m 192 1245 R 102");
+    EXPECT_TRUE(remote::multipleStructType.blockUntilServerAvailable(runner));
+
+    SimpleStruct arg1;
+    arg1.a = 'm';
+    arg1.b = 19512; // UNACCEPTABLE!
+
+    DifferentSimpleStruct arg2;
+    arg2.a = 1245;
+    arg2.b = 'R';
+    arg2.c = 102;
+
+    remote::multipleStructType(arg1, arg2);
+
+    EXPECT_EQ(1, fut.get());
+}
+
+TEST(RemoteFunction, multiple_struct_type_neg2) {
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./multiple_struct_type_server m 192 1245 R 102");
+    EXPECT_TRUE(remote::multipleStructType.blockUntilServerAvailable(runner));
+
+    SimpleStruct arg1;
+    arg1.a = 'm';
+    arg1.b = 192;
+
+    DifferentSimpleStruct arg2;
+    arg2.a = 1245;
+    arg2.b = 'r'; // WRONG!
+    arg2.c = 102;
+
+    remote::multipleStructType(arg1, arg2);
+
+    EXPECT_EQ(1, fut.get());
 }
 
 

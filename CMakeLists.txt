@@ -38,6 +38,8 @@ set (SERVER_NAMES print_name_and_age_server
                   array_type_many_args_server
                   dynamic_type_server
                   multiple_dynamic_type_server
+                  struct_type_server
+                  multiple_struct_type_server
                   )
 
 foreach (SERVER IN LISTS SERVER_NAMES)
