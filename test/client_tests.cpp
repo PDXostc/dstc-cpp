@@ -1015,5 +1015,45 @@ TEST(RemoteFunction, callback_mixed_types) {
 }
 
 TEST(RemoteFunction, multiple_functions_multiple_servers) {
-    FAIL() << "Implement me";
+    dstc::EventLoopRunner runner;
+
+
+    auto print_name_and_age_server = spawnProcess("./print_name_and_age_server \"Sue Margot\" 42");
+    auto basic_type_many_args_server = spawnProcess("./basic_type_many_args_server -52 d 61 125");
+    auto struct_type_server = spawnProcess("./struct_type_server p 97");
+    auto callback_server = spawnProcess("./callback_server");
+
+    EXPECT_TRUE(remote::printNameAndAge.blockUntilServerAvailable(runner));
+    EXPECT_TRUE(remote::basicTypeManyArgs.blockUntilServerAvailable(runner));
+    EXPECT_TRUE(remote::structType.blockUntilServerAvailable(runner));
+    EXPECT_TRUE(remote::addAndMultiply.blockUntilServerAvailable(runner));
+
+    char name[] = "Sue Margot";
+    SimpleStruct strct;
+    strct.a = 'p';
+    strct.b = 97;
+    std::atomic<bool> done;
+
+    remote::printNameAndAge(name, 42);
+    remote::basicTypeManyArgs(-52, 'd', 61, 125);
+    remote::structType(strct);
+    remote::addAndMultiply(12, 34,
+        dstc::CallbackFunction<int, int>(
+            [&done] (int sum, int product) {
+                EXPECT_EQ(12 + 34, sum);
+                EXPECT_EQ(12 * 34, product);
+                done = true;
+            }
+        )
+    );
+
+    while (!done) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    EXPECT_EQ(0, print_name_and_age_server.get());
+    EXPECT_EQ(0, basic_type_many_args_server.get());
+    EXPECT_EQ(0, struct_type_server.get());
+    EXPECT_EQ(0, callback_server.get());
 }
+
