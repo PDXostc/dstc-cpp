@@ -19,6 +19,11 @@ extern "C" {
 
 namespace dstc {
 
+    /*!
+     * Base class of all derived templates of CallbackFunction.  This exists to allow template
+     * magic check if an argument is of a CallbackFunction type to be treated correctly during
+     * serialization and deserialization.
+     */
     class CallbackFunctionBase {
     public:
         virtual void execute(uint8_t* payload, uint16_t payload_len) = 0;
@@ -341,6 +346,10 @@ namespace dstc {
                                     uint8_t* payload,
                                     uint16_t payload_len);
 
+    /*!
+     * Callback function for a DSTC callback activation
+     * /tparam Types Argument types in the callback return
+     */
     template<class ... Types>
     class CallbackFunction : public CallbackFunctionBase{
     public:
@@ -674,7 +683,10 @@ namespace dstc {
             static_assert (sizeof...(Types) <= 16, "Currently only up to 16 paramater for callbacks in supported, although this can be expanded");
         }
 
-
+        /*!
+         * Constructs a CallbackFunction using an arbitrary function that matches the arguments list
+         * \param function Function (or lambda) that accepts Types... args, and returns void
+         */
         CallbackFunction(std::function<void(Types...)> function)
         : _function(function)
         {}

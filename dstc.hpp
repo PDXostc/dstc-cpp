@@ -83,6 +83,11 @@ namespace dstc {
         }
     }
 
+    /*!
+     * Objects of this class expose a function available on a remote server via DSTC
+     * /tparam DSTC_Name Name of function on remote server, matching required DSTC string
+     * /tparam Types Argument types of remote function
+     */
     template<const char* DSTC_Name, class ... Types>
     class RemoteFunction {
     public:
@@ -90,30 +95,29 @@ namespace dstc {
             dstc_register_client_function(NULL, (char*) DSTC_Name, (void*)RemoteFunction::execute);
         }
 
+        /*!
+         * Executes remote function
+         * \param args Arguments to function
+         * \returns return value of `dstc_queue_func`.
+         */
         int operator()(Types ... args) {
             return execute(args...);
         }
 
-        static uint32_t getArgSize(Types ... args) {
-            return utils::getArgsSize<Types...>(args...);
-        }
-
-        static int execute(Types... args) {
-            auto arg_size = getArgSize(args...);
-            uint8_t arg_buf[arg_size];
-            uint8_t* ptr = arg_buf;
-
-            if constexpr (sizeof...(Types) > 0) {
-                utils::copyArgs<Types...>(ptr, args...);
-            }
-
-            return dstc_queue_func(nullptr, (char*)DSTC_Name, arg_buf, arg_size);
-        }
-
+        /*!
+         * Checks if server is available
+         * \returns true if a server has advertised the remote function, false otherwise
+         */
         bool serverAvailable() {
             return dstc_remote_function_available_by_name((char*)DSTC_Name);
         }
 
+        /*!
+         * Blocks until a remote function is availble.  Requires a `EventLoopRunner` object.  If doing a custom event loop that executes `dstc_process_events`, then use `serverAvailable()` in polling mode instead.
+         * \param runner EventLoopRunner object to ensure that `dstc_process_events` is being called in the background.
+         * \param timeout_ms How long, in ms, to wait for server to become available.  Negative values mean this blocks forever
+         * \returns true if server function is available, false if timeout occurred before function became available
+         */
         bool blockUntilServerAvailable(const EventLoopRunner& runner, int timeout_ms = -1) {
 
             (void) runner; // cast to avoid not used warning--it does not get used in this function
@@ -136,6 +140,23 @@ namespace dstc {
                     std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 }
             }
+        }
+
+    private:
+        static uint32_t getArgSize(Types ... args) {
+            return utils::getArgsSize<Types...>(args...);
+        }
+
+        static int execute(Types... args) {
+            auto arg_size = getArgSize(args...);
+            uint8_t arg_buf[arg_size];
+            uint8_t* ptr = arg_buf;
+
+            if constexpr (sizeof...(Types) > 0) {
+                utils::copyArgs<Types...>(ptr, args...);
+            }
+
+            return dstc_queue_func(nullptr, (char*)DSTC_Name, arg_buf, arg_size);
         }
     };
 }
