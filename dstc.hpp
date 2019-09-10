@@ -13,7 +13,6 @@ extern "C" {
 }
 
 #include <type_traits>
-#include <iostream> // should be removed after library is debugged and stable
 #include <chrono>
 #include <thread>
 

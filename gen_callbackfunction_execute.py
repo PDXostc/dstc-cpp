@@ -17,12 +17,13 @@ end_bracket = "}"
 else_txt = "else "
 function_start = "void execute(uint8_t* payload, uint16_t payload_len) override {"
 conditional_expression = "if constexpr (sizeof...(Types) == {}) {{"
-return_start = "return _function("
+function_call_start = "_function("
 empty_function = "return _function();"
 define_arg = "auto arg{} = utils::getArgType{}<Types...>(&payload);"
 get_args_expr = "arg{}"
 function_call_end = ");"
 end = "static_assert (sizeof...(Types) <= {}, \"Currently only up to {} paramater for callbacks in supported, although this can be expanded\");"
+arg_delete_expression="\n{}{}{}{}if constexpr (isVarPointer(arg{})) delete[] arg{};"
 
 function_text = nl
 
@@ -40,13 +41,19 @@ for idx in range(num_expressions_to_generate):
     for idx2 in range(idx + 1):
         function_text += indent + indent + define_arg.format(idx2, idx2) + nl
 
-    function_text += indent + indent + return_start
+    function_text += indent + indent + function_call_start
     for idx2 in range(idx + 1):
         function_text += get_args_expr.format(idx2)
         if (idx2 == (idx)):
-            function_text += function_call_end + nl + indent + end_bracket
+            function_text += function_call_end
         else:
             function_text += comma + " "
+    for idx2 in range(idx + 1):
+        function_text += arg_delete_expression.format(
+            indent, indent, indent, indent, idx2, idx2
+        )
+
+    function_text += nl + indent + end_bracket
 
 function_text += nl + indent + end.format(num_expressions_to_generate, num_expressions_to_generate) + nl + end_bracket
 

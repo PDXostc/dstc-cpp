@@ -16,6 +16,8 @@ DSTC_SERVER(add_and_multiply, int,, int,, DSTC_DECL_CALLBACK_ARG)
 DSTC_SERVER(do_lots_of_things, struct ForManipulation,, DSTC_DECL_CALLBACK_ARG)
 DSTC_SERVER(separate_types, struct StructA,, struct StructB,, DSTC_DECL_CALLBACK_ARG)
 DSTC_SERVER(rude_contradiction, DSTC_DECL_DYNAMIC_ARG, DSTC_DECL_CALLBACK_ARG)
+DSTC_SERVER(str_concat, DSTC_DECL_DYNAMIC_ARG, DSTC_DECL_DYNAMIC_ARG, DSTC_DECL_CALLBACK_ARG)
+DSTC_SERVER(gen_fib, int, [2], DSTC_DECL_CALLBACK_ARG);
 
 void double_value(int value, dstc_callback_t callback_ref)
 {
@@ -92,6 +94,43 @@ void rude_contradiction(dstc_dynamic_data_t input, dstc_callback_t callback_ref)
 
     dstc_callback_ref(output);
 
+    dstc_process_events(-1);
+
+    free(final_expression);
+
+    exit(0);
+}
+
+void str_concat(dstc_dynamic_data_t input1, dstc_dynamic_data_t input2, dstc_callback_t callback_ref) {
+    DSTC_SERVER_CALLBACK(callback_ref, DSTC_DECL_DYNAMIC_ARG, DSTC_DECL_DYNAMIC_ARG, DSTC_DECL_DYNAMIC_ARG)
+
+    char* combined_str = (char*) malloc(input1.length + input2.length - 1);
+    strcpy(combined_str, (char*) input1.data);
+    strcat(combined_str, (char*) input2.data);
+
+    dstc_dynamic_data_t ret_data;
+    ret_data.length = strlen(combined_str) + 1;
+    ret_data.data = combined_str;
+
+    // Just to pass more data, we actually pass the original strings back w/ the concat screen
+    dstc_callback_ref(input1, input2, ret_data);
+    dstc_process_events(-1);
+    free(combined_str);
+    exit(0);
+}
+
+void gen_fib(int seeds[2], dstc_callback_t callback_ref) {
+    DSTC_SERVER_CALLBACK(callback_ref, int, [10]);
+
+    int fib_values[10];
+    fib_values[0] = seeds[0];
+    fib_values[1] = seeds[1];
+
+    for (unsigned int i = 2; i < 10; ++i) {
+        fib_values[i] = fib_values[i-1] + fib_values[i-2];
+    }
+
+    dstc_callback_ref(fib_values);
     dstc_process_events(-1);
     exit(0);
 }

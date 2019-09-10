@@ -32,6 +32,8 @@ namespace remote {
         const char do_lots_of_things[] = "do_lots_of_things";
         const char separate_types[] = "separate_types";
         const char rude_contradiction[] = "rude_contradiction";
+        const char str_concat[] = "str_concat";
+        const char gen_fib[] = "gen_fib";
     }
     dstc::RemoteFunction<names::print_name_and_age, char[32], int> printNameAndAge;
     dstc::RemoteFunction<names::basic_type_one_arg, int> basicTypeOneArg;
@@ -48,7 +50,18 @@ namespace remote {
     dstc::RemoteFunction<names::add_and_multiply, int, int, dstc::CallbackFunction<int, int>> addAndMultiply;
     dstc::RemoteFunction<names::do_lots_of_things, ForManipulation, dstc::CallbackFunction<ForManipulation>> doLotsOfThings;
     dstc::RemoteFunction<names::separate_types, StructA, StructB, dstc::CallbackFunction<Struct16, Struct8>> separateTypes;
-    dstc::RemoteFunction<names::rude_contradiction, dstc_dynamic_data_t, dstc::CallbackFunction<dstc_dynamic_data_t>> rudeContradiction;
+    dstc::RemoteFunction<names::rude_contradiction,
+                         dstc_dynamic_data_t,
+                         dstc::CallbackFunction<dstc_dynamic_data_t>> rudeContradiction;
+    dstc::RemoteFunction<names::str_concat,
+                         dstc_dynamic_data_t,
+                         dstc_dynamic_data_t,
+                         dstc::CallbackFunction<dstc_dynamic_data_t,
+                                                dstc_dynamic_data_t,
+                                                dstc_dynamic_data_t>> strConcat;
+    dstc::RemoteFunction<names::gen_fib,
+                         int[2],
+                         dstc::CallbackFunction<int[10]>> genFib;
 }
 
 std::future<int> spawnProcess(std::string&& server_binary_name) {
@@ -745,6 +758,7 @@ TEST(RemoteFunction, callback_struct_type) {
     remote::doLotsOfThings(
         data, dstc::CallbackFunction<ForManipulation>(
             [&done](ForManipulation ret) {
+                std::cout << "CALLBACK!" << std::endl;
                 EXPECT_EQ('d' + 1, ret.ch);
                 EXPECT_EQ(142.0 / 2.0, ret.d);
                 EXPECT_EQ(1512 * 2, ret.i);
@@ -833,11 +847,75 @@ TEST(RemoteFunction, callback_dynamic_type) {
 }
 
 TEST(RemoteFunction, callback_multiple_dynamic_type) {
-    FAIL() << "Implement me";
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./callback_server");
+    EXPECT_TRUE(remote::strConcat.blockUntilServerAvailable(runner));
+
+    std::atomic<bool> done = false;
+
+    char first_part[] = "blah blah";
+    char second_part[] = "foo fah";
+    char combined[] =  "blah blahfoo fah";
+
+    dstc_dynamic_data_t arg1, arg2;
+    arg1.data = first_part;
+    arg1.length = strlen(first_part) + 1;
+    arg2.data = second_part;
+    arg2.length = strlen(second_part) + 1;
+
+    remote::strConcat(
+        arg1,
+        arg2,
+        dstc::CallbackFunction<dstc_dynamic_data_t, dstc_dynamic_data_t, dstc_dynamic_data_t>(
+            [&done, &first_part, &second_part, &combined]
+            (dstc_dynamic_data_t input1, dstc_dynamic_data_t input2, dstc_dynamic_data_t result) {
+                EXPECT_STREQ(first_part, (char*) input1.data);
+                EXPECT_STREQ(second_part, (char*) input2.data);
+                EXPECT_STREQ(combined, (char*) result.data);
+                done = true;
+            }
+        )
+    );
+
+    while (!done) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    EXPECT_EQ(0, fut.get());
 }
 
 TEST(RemoteFunction, callback_array_type) {
-    FAIL() << "Implement me";
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./callback_server");
+    EXPECT_TRUE(remote::genFib.blockUntilServerAvailable(runner));
+
+    std::atomic<bool> done = false;
+
+    int seeds[2] = {1, 1};
+
+    remote::genFib(seeds,
+         dstc::CallbackFunction<int[10]>(
+             [&done] (int seq[10]) {
+                 EXPECT_EQ(1, seq[0]);
+                 EXPECT_EQ(1, seq[1]);
+                 EXPECT_EQ(2, seq[2]);
+                 EXPECT_EQ(3, seq[3]);
+                 EXPECT_EQ(5, seq[4]);
+                 EXPECT_EQ(8, seq[5]);
+                 EXPECT_EQ(13, seq[6]);
+                 EXPECT_EQ(21, seq[7]);
+                 EXPECT_EQ(34, seq[8]);
+                 EXPECT_EQ(55, seq[9]);
+                 done = true;
+             }
+         )
+    );
+
+    while (!done) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    EXPECT_EQ(0, fut.get());
 }
 
 TEST(RemoteFunction, callback_multiple_array_type) {
