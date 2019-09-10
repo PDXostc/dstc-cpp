@@ -19,6 +19,7 @@ DSTC_SERVER(rude_contradiction, DSTC_DECL_DYNAMIC_ARG, DSTC_DECL_CALLBACK_ARG)
 DSTC_SERVER(str_concat, DSTC_DECL_DYNAMIC_ARG, DSTC_DECL_DYNAMIC_ARG, DSTC_DECL_CALLBACK_ARG)
 DSTC_SERVER(gen_fib, int, [2], DSTC_DECL_CALLBACK_ARG);
 DSTC_SERVER(add_and_multiply_arrays, int, [10], int, [10], DSTC_DECL_CALLBACK_ARG);
+DSTC_SERVER(echo, struct SimpleStruct, [3], DSTC_DECL_DYNAMIC_ARG, char,, DSTC_DECL_CALLBACK_ARG);
 
 void double_value(int value, dstc_callback_t callback_ref)
 {
@@ -149,6 +150,14 @@ void gen_fib(int seeds[2], dstc_callback_t callback_ref) {
     }
 
     dstc_callback_ref(fib_values);
+    dstc_process_events(-1);
+    exit(0);
+}
+
+void echo(struct SimpleStruct struct_array[3], dstc_dynamic_data_t char_array, char ch, dstc_callback_t callback_ref)
+{
+    DSTC_SERVER_CALLBACK(callback_ref, struct SimpleStruct, [3], DSTC_DECL_DYNAMIC_ARG, char,);
+    dstc_callback_ref(struct_array, char_array, ch);
     dstc_process_events(-1);
     exit(0);
 }

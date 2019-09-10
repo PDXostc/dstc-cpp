@@ -22,7 +22,6 @@ namespace dstc {
     class CallbackFunctionBase {
     public:
         virtual void execute(uint8_t* payload, uint16_t payload_len) = 0;
-        //virtual ~CallbackFunctionBase() = 0;
     };
 
     namespace utils {

@@ -35,6 +35,7 @@ namespace remote {
         const char str_concat[] = "str_concat";
         const char gen_fib[] = "gen_fib";
         const char add_and_multiply_arrays[] = "add_and_multiply_arrays";
+        const char echo[] = "echo";
     }
     dstc::RemoteFunction<names::print_name_and_age, char[32], int> printNameAndAge;
     dstc::RemoteFunction<names::basic_type_one_arg, int> basicTypeOneArg;
@@ -67,6 +68,14 @@ namespace remote {
                          int[10],
                          int[10],
                          dstc::CallbackFunction<int[10], int[10]>> addAndMultiplyArrays;
+    dstc::RemoteFunction<names::echo,
+                         SimpleStruct[3],
+                         dstc_dynamic_data_t,
+                         char,
+                         dstc::CallbackFunction<
+                            SimpleStruct[3],
+                            dstc_dynamic_data_t,
+                            char>>                 echo;
 }
 
 std::future<int> spawnProcess(std::string&& server_binary_name) {
@@ -960,9 +969,51 @@ TEST(RemoteFunction, callback_multiple_array_type) {
 }
 
 TEST(RemoteFunction, callback_mixed_types) {
-    FAIL() << "Implement me";
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./callback_server");
+    EXPECT_TRUE(remote::echo.blockUntilServerAvailable(runner));
+
+    std::atomic<bool> done = false;
+
+    SimpleStruct array[3];
+    array[0].a = 'a';
+    array[1].a = 'a';
+    array[2].a = 'a';
+    array[0].b = 512;
+    array[1].b = 4361;
+    array[2].b = 298;
+    char ch_array[] = "Hello World";
+    dstc_dynamic_data_t ch_array_dd;
+    ch_array_dd.length = strlen(ch_array) + 1;
+    ch_array_dd.data = (void*) ch_array;
+    char ch = '?';
+
+    remote::echo(
+        array,
+        ch_array_dd,
+        ch,
+        dstc::CallbackFunction<SimpleStruct[3], dstc_dynamic_data_t, char>(
+            [&done, &array, &ch_array, &ch] (SimpleStruct e_array[3], dstc_dynamic_data_t e_ch_array, char e_ch) {
+                for (auto i = 0; i < 3; ++i) {
+                    EXPECT_EQ(array[i].a, e_array[i].a);
+                    EXPECT_EQ(array[i].b, e_array[i].b);
+                }
+                EXPECT_EQ(e_ch_array.length, strlen(ch_array) + 1);
+                EXPECT_STREQ(ch_array, (char*)e_ch_array.data);
+                EXPECT_EQ(ch, e_ch);
+                done = true;
+            }
+        )
+    );
+
+
+    while (!done) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    EXPECT_EQ(0, fut.get());
 }
 
-TEST(RemoteFunction, multiple_functions) {
+TEST(RemoteFunction, multiple_functions_multiple_servers) {
     FAIL() << "Implement me";
 }
