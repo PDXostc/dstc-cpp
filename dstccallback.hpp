@@ -57,6 +57,7 @@ namespace dstc {
         typename std::remove_extent<TYPE>::type* parseArgArray(uint8_t** ptr) {
             auto p = new typename std::remove_extent<TYPE>::type [std::extent<TYPE>::value];
             memcpy((void*) p, (*ptr), sizeof(TYPE));
+            (*ptr) += sizeof(TYPE);
             return p;
         }
 

@@ -18,6 +18,7 @@ DSTC_SERVER(separate_types, struct StructA,, struct StructB,, DSTC_DECL_CALLBACK
 DSTC_SERVER(rude_contradiction, DSTC_DECL_DYNAMIC_ARG, DSTC_DECL_CALLBACK_ARG)
 DSTC_SERVER(str_concat, DSTC_DECL_DYNAMIC_ARG, DSTC_DECL_DYNAMIC_ARG, DSTC_DECL_CALLBACK_ARG)
 DSTC_SERVER(gen_fib, int, [2], DSTC_DECL_CALLBACK_ARG);
+DSTC_SERVER(add_and_multiply_arrays, int, [10], int, [10], DSTC_DECL_CALLBACK_ARG);
 
 void double_value(int value, dstc_callback_t callback_ref)
 {
@@ -31,6 +32,23 @@ void add_and_multiply(int a, int b, dstc_callback_t callback_ref)
 {
     DSTC_SERVER_CALLBACK(callback_ref, int,,int,)
     dstc_callback_ref(a + b, a * b);
+    dstc_process_events(-1);
+    exit(0);
+}
+
+void add_and_multiply_arrays(int a[10], int b[10], dstc_callback_t callback_ref)
+{
+    DSTC_SERVER_CALLBACK(callback_ref, int, [10], int, [10]);
+
+    int sums[10];
+    int products[10];
+
+    for (unsigned int i = 0; i < 10; ++i) {
+        sums[i] = a[i] + b[i];
+        products[i] = a[i] * b[i];
+    }
+
+    dstc_callback_ref(sums, products);
     dstc_process_events(-1);
     exit(0);
 }

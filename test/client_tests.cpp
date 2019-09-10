@@ -34,6 +34,7 @@ namespace remote {
         const char rude_contradiction[] = "rude_contradiction";
         const char str_concat[] = "str_concat";
         const char gen_fib[] = "gen_fib";
+        const char add_and_multiply_arrays[] = "add_and_multiply_arrays";
     }
     dstc::RemoteFunction<names::print_name_and_age, char[32], int> printNameAndAge;
     dstc::RemoteFunction<names::basic_type_one_arg, int> basicTypeOneArg;
@@ -62,6 +63,10 @@ namespace remote {
     dstc::RemoteFunction<names::gen_fib,
                          int[2],
                          dstc::CallbackFunction<int[10]>> genFib;
+    dstc::RemoteFunction<names::add_and_multiply_arrays,
+                         int[10],
+                         int[10],
+                         dstc::CallbackFunction<int[10], int[10]>> addAndMultiplyArrays;
 }
 
 std::future<int> spawnProcess(std::string&& server_binary_name) {
@@ -919,7 +924,39 @@ TEST(RemoteFunction, callback_array_type) {
 }
 
 TEST(RemoteFunction, callback_multiple_array_type) {
-    FAIL() << "Implement me";
+    dstc::EventLoopRunner runner;
+    auto fut = spawnProcess("./callback_server");
+    EXPECT_TRUE(remote::addAndMultiplyArrays.blockUntilServerAvailable(runner));
+
+    std::atomic<bool> done = false;
+
+    int a[10];
+    int b[10];
+
+    for (unsigned int i = 0; i < 10; ++i) {
+        a[i] = i + 1;
+        b[i] = i * 3;
+    }
+
+    remote::addAndMultiplyArrays(
+        a,
+        b,
+        dstc::CallbackFunction<int[10], int[10]>(
+            [&done, &a, &b] (int sum[10], int product[10]) {
+                for (auto i = 0; i < 10; ++i) {
+                    EXPECT_EQ(a[i] + b[i], sum[i]);
+                    EXPECT_EQ(a[i] * b[i], product[i]);
+                }
+                done = true;
+            }
+        )
+    );
+
+    while (!done) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    EXPECT_EQ(0, fut.get());
 }
 
 TEST(RemoteFunction, callback_mixed_types) {

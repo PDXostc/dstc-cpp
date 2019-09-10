@@ -9,7 +9,6 @@
 
 extern "C" {
     #include "dstc.h"
-    //extern int dstc_dyndata_length(dstc_dynamic_data_t*);
 }
 
 #include <type_traits>
