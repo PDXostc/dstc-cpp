@@ -1,21 +1,26 @@
 cmake_minimum_required(VERSION 3.10)
 
 # Main library
-
 file(GLOB lib_SRC
     "./*.cpp"
 )
 
 add_library(dstcpp SHARED ${lib_SRC})
 
-include_directories(dstcpp ../dstc)
-include_directories(dstcpp ../reliable_multicast)
+foreach( H_HEADER dstc reliable_multicast)
+    set (H_HEADER_PATH "VAR_${H_HEADER}")
+    set (H_FILE "${H_HEADER}.h")
+    find_path(${H_HEADER_PATH} ${H_FILE} )
+    if (NOT ${H_HEADER_PATH})
+        message(FATAL_ERROR "${H_FILE} not found")
+    endif()
+    include_directories(dstcpp ${${H_HEADER_PATH}})
+endforeach( H_HEADER )
 
 target_link_libraries(dstcpp dstc)
 target_link_libraries(dstcpp rmc)
 
 set_property(TARGET dstcpp PROPERTY CXX_STANDARD 17)
-
 
 # Main Test Executable
 
