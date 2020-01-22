@@ -21,25 +21,28 @@ DSTC_SERVER(gen_fib, int, [2], DSTC_DECL_CALLBACK_ARG);
 DSTC_SERVER(add_and_multiply_arrays, int, [10], int, [10], DSTC_DECL_CALLBACK_ARG);
 DSTC_SERVER(echo, struct SimpleStruct, [3], DSTC_DECL_DYNAMIC_ARG, char,, DSTC_DECL_CALLBACK_ARG);
 
+DSTC_SERVER_CALLBACK(callback_double_value, int,);
+
 void double_value(int value, dstc_callback_t callback_ref)
 {
-    DSTC_SERVER_CALLBACK(callback_ref, int,);
-    dstc_callback_ref(value * 2);
+    dstc_callback_double_value(callback_ref, value * 2);
     dstc_process_events(-1);
     exit(0);
 }
+
+DSTC_SERVER_CALLBACK(callback_add_and_multiply, int,,int,)
 
 void add_and_multiply(int a, int b, dstc_callback_t callback_ref)
 {
-    DSTC_SERVER_CALLBACK(callback_ref, int,,int,)
-    dstc_callback_ref(a + b, a * b);
+    dstc_callback_add_and_multiply(callback_ref, a + b, a * b);
     dstc_process_events(-1);
     exit(0);
 }
 
+DSTC_SERVER_CALLBACK(callback_add_and_multiply_arrays, int, [10], int, [10]);
+
 void add_and_multiply_arrays(int a[10], int b[10], dstc_callback_t callback_ref)
 {
-    DSTC_SERVER_CALLBACK(callback_ref, int, [10], int, [10]);
 
     int sums[10];
     int products[10];
@@ -49,14 +52,15 @@ void add_and_multiply_arrays(int a[10], int b[10], dstc_callback_t callback_ref)
         products[i] = a[i] * b[i];
     }
 
-    dstc_callback_ref(sums, products);
+    dstc_callback_add_and_multiply_arrays(callback_ref, sums, products);
     dstc_process_events(-1);
     exit(0);
 }
 
+DSTC_SERVER_CALLBACK(callback_do_lots_of_things, struct ForManipulation,)
+
 void do_lots_of_things(struct ForManipulation arg, dstc_callback_t callback_ref)
 {
-    DSTC_SERVER_CALLBACK(callback_ref, struct ForManipulation,)
 
     struct ForManipulation ret;
 
@@ -65,15 +69,16 @@ void do_lots_of_things(struct ForManipulation arg, dstc_callback_t callback_ref)
     ret.i = arg.i * 2;
     ret.d = arg.d / 2.0;
 
-    dstc_callback_ref(ret);
+    dstc_callback_do_lots_of_things(callback_ref, ret);
 
     dstc_process_events(-1);
     exit(0);
 }
 
+DSTC_SERVER_CALLBACK(callback_separate_types, struct Struct16,, struct Struct8,)
+
 void separate_types(struct StructA a, struct StructB b, dstc_callback_t callback_ref)
 {
-    DSTC_SERVER_CALLBACK(callback_ref, struct Struct16,, struct Struct8,)
 
     struct Struct8  s8;
     struct Struct16 s16;
@@ -86,15 +91,17 @@ void separate_types(struct StructA a, struct StructB b, dstc_callback_t callback
     s16.d = b.d;
     s16.f = b.f;
 
-    dstc_callback_ref(s16, s8);
+    dstc_callback_separate_types(callback_ref, s16, s8);
 
     dstc_process_events(-1);
     exit(0);
 }
 
+
+DSTC_SERVER_CALLBACK(callback_rude_contradiction, DSTC_DECL_DYNAMIC_ARG)
+
 void rude_contradiction(dstc_dynamic_data_t input, dstc_callback_t callback_ref)
 {
-    DSTC_SERVER_CALLBACK(callback_ref, DSTC_DECL_DYNAMIC_ARG)
 
     char start_expression[] = "No, ";
     char stop_expression[] = " is the stupidest thing I've ever heard.";
@@ -111,7 +118,7 @@ void rude_contradiction(dstc_dynamic_data_t input, dstc_callback_t callback_ref)
     output.length = strlen(final_expression) + 1;
     output.data = (void*) final_expression;
 
-    dstc_callback_ref(output);
+    dstc_callback_rude_contradiction(callback_ref, output);
 
     dstc_process_events(-1);
 
@@ -120,8 +127,9 @@ void rude_contradiction(dstc_dynamic_data_t input, dstc_callback_t callback_ref)
     exit(0);
 }
 
+DSTC_SERVER_CALLBACK(callback_str_concat, DSTC_DECL_DYNAMIC_ARG, DSTC_DECL_DYNAMIC_ARG, DSTC_DECL_DYNAMIC_ARG)
+
 void str_concat(dstc_dynamic_data_t input1, dstc_dynamic_data_t input2, dstc_callback_t callback_ref) {
-    DSTC_SERVER_CALLBACK(callback_ref, DSTC_DECL_DYNAMIC_ARG, DSTC_DECL_DYNAMIC_ARG, DSTC_DECL_DYNAMIC_ARG)
 
     char* combined_str = (char*) malloc(input1.length + input2.length - 1);
     strcpy(combined_str, (char*) input1.data);
@@ -132,14 +140,15 @@ void str_concat(dstc_dynamic_data_t input1, dstc_dynamic_data_t input2, dstc_cal
     ret_data.data = combined_str;
 
     // Just to pass more data, we actually pass the original strings back w/ the concat screen
-    dstc_callback_ref(input1, input2, ret_data);
+    dstc_callback_str_concat(callback_ref, input1, input2, ret_data);
     dstc_process_events(-1);
     free(combined_str);
     exit(0);
 }
 
+DSTC_SERVER_CALLBACK(callback_gen_fib, int, [10]);
+
 void gen_fib(int seeds[2], dstc_callback_t callback_ref) {
-    DSTC_SERVER_CALLBACK(callback_ref, int, [10]);
 
     int fib_values[10];
     fib_values[0] = seeds[0];
@@ -149,15 +158,16 @@ void gen_fib(int seeds[2], dstc_callback_t callback_ref) {
         fib_values[i] = fib_values[i-1] + fib_values[i-2];
     }
 
-    dstc_callback_ref(fib_values);
+    dstc_callback_gen_fib(callback_ref, fib_values);
     dstc_process_events(-1);
     exit(0);
 }
 
+
+DSTC_SERVER_CALLBACK(callback_echo, struct SimpleStruct, [3], DSTC_DECL_DYNAMIC_ARG, char,);
 void echo(struct SimpleStruct struct_array[3], dstc_dynamic_data_t char_array, char ch, dstc_callback_t callback_ref)
 {
-    DSTC_SERVER_CALLBACK(callback_ref, struct SimpleStruct, [3], DSTC_DECL_DYNAMIC_ARG, char,);
-    dstc_callback_ref(struct_array, char_array, ch);
+    dstc_callback_echo(callback_ref, struct_array, char_array, ch);
     dstc_process_events(-1);
     exit(0);
 }
